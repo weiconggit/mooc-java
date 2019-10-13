@@ -13,6 +13,9 @@ import java.util.Scanner;
 public class Week2 {
 
 	/**
+	 * 编码格式：
+	 * UTF-8
+	 * 
 	 * 环境说明：
 	 * jdk1.7、jdk1.8
 	 * 
