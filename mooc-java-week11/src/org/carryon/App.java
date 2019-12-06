@@ -19,7 +19,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
+
+import org.carryon.util.LocalSwingUtil;
+import org.carryon.util.StringUtil;
+import org.carryon.web.Crawler;
 
 /**
  * @description 程序入口
@@ -38,24 +41,23 @@ public class App extends JFrame {
 
 	private static final long serialVersionUID = 763670611593645586L;
 
-	
 	Font fontBase = new Font("楷书", Font.CENTER_BASELINE, 15);
 	
-	JLabel jLabelSearch = new JLabel();
+	JLabel jLabelSearch = new JLabel();			// 导航栏图标
 	JLabel jLabelPlayer = new JLabel();
 	JLabel jLabelCollect = new JLabel();
-	JLabel jLabel = new JLabel();
 	
-	JTextField jTextSearch = new JTextField(); // 搜索框
-	JButton jButtonSearch = new JButton();
+	JTextField jTextSearch = new JTextField(); 	// 搜索框
+	JButton jButtonSearch = new JButton();		// 搜索按钮
+	JLabel loading = new JLabel("loading...");
 	
-	JPanel jPanelNavigation = new JPanel(); // 导航栏
-	JPanel jPanelSearch = new JPanel(); // 搜索页
-	JPanel jPanelPlayer = new JPanel(); // 播放页
-	JPanel jPanelCollect = new JPanel(); // 收藏页
+	JPanel jPanelNavigation = new JPanel(); 	// 导航栏
+	JPanel jPanelSearch = new JPanel(); 		// 搜索页
+	JPanel jPanelPlayer = new JPanel(); 		// 播放页 未开发
+	JPanel jPanelCollect = new JPanel(); 		// 收藏页 未开发
 	
-	JPanel jPanelSearchTop = new JPanel();
-	JPanel jPanelSearchBottom = new JPanel();
+	JPanel jPanelSearchTop = new JPanel();		// 搜索页顶部
+	JPanel jPanelSearchBottom = new JPanel();   // 搜索页底部数据展示
 	
 	ImageIcon imageIconSe = LocalSwingUtil.scalingImg("icon/search.png");
 	ImageIcon imageIconPl = LocalSwingUtil.scalingImg("icon/player.png");
@@ -63,16 +65,21 @@ public class App extends JFrame {
 	ImageIcon imageIconSeGray = LocalSwingUtil.scalingImg("icon/search_gray.png");
 	ImageIcon imageIconPlGray = LocalSwingUtil.scalingImg("icon/player_gray.png");
 	ImageIcon imageIconCoGray = LocalSwingUtil.scalingImg("icon/collect_gray.png");
-	ImageIcon imageIcon = LocalSwingUtil.scalingImg1("img/2019-11-25 143932.jpg");
 
-	JPopupMenu jpm;
-	LocalTableCellRenderer localTableCellRenderer = new LocalTableCellRenderer();
+	JPopupMenu jpm = new JPopupMenu();;
+	JTable table = LocalSwingUtil.getTableStyle();
+	JScrollPane jScrollPane = new JScrollPane(table);
 	
+	/**
+	 * 窗体初始化
+	 * @throws IOException
+	 */
 	public void init() throws IOException {
 		setSize(800, 600);
 		setTitle("Mooc Week11 电影资源嗅探管理器");
 		setLayout(new BorderLayout());
-		setLocationRelativeTo(null); // 窗口整体居中
+		// 窗口整体居中
+		setLocationRelativeTo(null); 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		
 		// 1、导航栏组件
@@ -83,12 +90,13 @@ public class App extends JFrame {
 		initSearchBottomComponent();		
 		
 		// 3、播放页
-//		initPlayer();
-		
-		// 4、布局
+		// 4、收藏页
+
+		// 5、布局
 		initPanel();
 		
-		setVisible(true); // 一定要放到最后，不然组件显示不完整
+		// 一定要放到最后，不然组件显示不完整
+		setVisible(true); 
 	}
 	
 	/**
@@ -129,7 +137,6 @@ public class App extends JFrame {
 				jLabelSearch.setIcon(imageIconSeGray);
 				jLabelPlayer.setIcon(imageIconPlGray);
 				jLabelCollect.setIcon(imageIconCo);
-//				jPanelSearch.setVisible(false);
 			}
 		});
 	}
@@ -146,6 +153,25 @@ public class App extends JFrame {
 		jButtonSearch.setForeground(Color.green);
 		jButtonSearch.setFont(fontBase);
 		jButtonSearch.setPreferredSize(new Dimension(70, 30));
+		jButtonSearch.addActionListener(e->{
+			String filmName = jTextSearch.getText();
+			if (StringUtil.isBlank(filmName)) {
+				LocalSwingUtil.diglog("请输入关键词");
+			}
+			loading.setVisible(true);
+			loading.updateUI();
+		    try {
+				DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+				tableModel.setRowCount(0);
+				Crawler.getFromXl720Com(filmName, table);
+			} catch (Exception e1) {
+				LocalSwingUtil.diglog("加载出错，请重试");
+				e1.printStackTrace();
+			}
+//		    loading.setVisible(false);
+//		    loading.updateUI();
+		});
+		loading.setVisible(false);
 		
 		jPanelSearchTop.setLayout(new FlowLayout()); // 可写可不写，默认即是流动布局
 		jPanelSearchTop.setPreferredSize(new Dimension(730, 45));
@@ -153,59 +179,17 @@ public class App extends JFrame {
 		
 		jPanelSearchTop.add(jTextSearch);
 		jPanelSearchTop.add(jButtonSearch);
+		jPanelSearchTop.add(loading);
 	}
 
 	/**
 	 * 搜索页底部组件初始化
 	 */
-	public void initSearchBottomComponent() {
-		JLabel jLabel1 = new JLabel();
-		jLabel1.setSize(30, 50);
-		jLabel1.setText("<html><img src=\"http://img.idyjy.com/pic/uploadimg/2016-9/14425.jpg\" height=\"180\" width=\"130\"></html>");
-	    final JLabel jLabel2 = new JLabel();
-	    jLabel2.setText("<html><p>机械师2</p><p>导演：苇丛</p><p>下载地址：http://img.idyjy.com/pic/uploadimg/2016-9/14425.jpg</p></html>");
-	    
-	    String[] columnName = new String[]{"", ""};
-	    Object[][] columnDate = new Object[6][2];
-	    columnDate[0][0] = jLabel1;
-	    columnDate[0][1] = jLabel2;
-	    columnDate[1][0] = jLabel1;
-	    columnDate[1][1] = jLabel2;
-	    
-	    TableModel tm = new DefaultTableModel(columnDate, columnName);
-	    final JTable table = new JTable(tm);
-	    table.getTableHeader().setVisible(false);  
-	    table.setEnabled(false);
-	    table.setAutoscrolls(true);
-	    table.setRowHeight(200);
-	    table.setShowGrid(false);
-	    table.setShowHorizontalLines(false);
-	    table.setShowVerticalLines(false);
-	    table.getColumnModel().getColumn(0).setPreferredWidth(140);
-	    table.getColumnModel().getColumn(1).setPreferredWidth(460);
-        table.getColumnModel().getColumn(0).setCellRenderer(localTableCellRenderer); // 设置可让图片显示在JTable中
-        table.getColumnModel().getColumn(1).setCellRenderer(localTableCellRenderer); 
-        table.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e){
-              if (e.getButton() == MouseEvent.BUTTON3){ // 鼠标右键监听
-                //在table显示
-                jpm = new JPopupMenu();
-                //表格 的rowAtPoint方法返回坐标所在的行号，参数为坐标类型，
-                int i = table.rowAtPoint(e.getPoint());
-//              jpm.add(i+"");
-                jpm.add(jLabel2.getText());
-                LocalSwingUtil.setSysClipboardText(jLabel2.getText());
-                jpm.show(table, e.getX(), e.getY());
-              }
-            }
-          });
-        
-	    JScrollPane jScrollPane = new JScrollPane(table);
+	public void initSearchBottomComponent() {   
 	    jScrollPane.setBorder(null);
 		jScrollPane.setPreferredSize(new Dimension(600, 510));
 		
 		jPanelSearchBottom.setBackground(Color.white);
-	    
 		jPanelSearchBottom.add(jScrollPane);
 	}
 	
@@ -232,6 +216,5 @@ public class App extends JFrame {
 		App app = new App();
 		app.init();
 	}
-	
 	
 }
