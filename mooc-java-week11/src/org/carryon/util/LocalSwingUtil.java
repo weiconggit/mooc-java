@@ -1,6 +1,5 @@
 package org.carryon.util;
 
-import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -8,14 +7,10 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 
 import javax.swing.ImageIcon;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
-
-import org.carryon.util.loading.LoadingPanel;
-import org.carryon.util.loading.SwingLoading;
 
 /**
  * @description Swing本地工具类

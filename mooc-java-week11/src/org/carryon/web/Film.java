@@ -11,6 +11,7 @@ import java.util.List;
  */
 public class Film {
 	
+	private String name;			// 名称
 	private String preview;     	// 预览图
 	private String details;			// 影片详情
 	private List<String> download = new ArrayList<String>(10);  // 下载链接
@@ -32,6 +33,12 @@ public class Film {
 	}
 	public void setDownload(List<String> download) {
 		this.download = download;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
 	}
 	
 }

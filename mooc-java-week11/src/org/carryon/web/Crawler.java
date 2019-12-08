@@ -1,15 +1,22 @@
 package org.carryon.web;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.JLabel;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
+import org.carryon.util.FileUtil;
+import org.carryon.util.LocalSwingUtil;
 import org.carryon.util.StringUtil;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -17,65 +24,75 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
- * @description 电影网站爬虫，空闲时间有限仅仅对 https://www.xl720.com/ 做了数据解析工作
+ * @description 电影网站爬虫
  * @author carryon
  * @date 2019年12月2日
  * @version 1.0
  */
 public abstract class Crawler {
-
-	private static String PATH1 = "https://www.xl720.com/?s=";
-	public static int AMOUNT = 5;
-
-	public static void getFromXl720Com(String searchValue, JTable table) throws IOException {
+	
+	private static ExecutorService executor = Executors.newFixedThreadPool(1);
+	private static List<String> list = FileUtil.readFileByNIO("conf/film.txt");
+	static MouseAdapter mouseAdapter;
+	
+	public static void getFromXl720Com(String searchValue, JTable table, JLabel loading) throws IOException {
 		// 1、一级页面解析
-		Document doc1ST = Jsoup.connect(PATH1 + searchValue).get();
+		Document doc1ST = Jsoup.connect(list.get(0) + searchValue).get();
 		Elements page1ST = doc1ST.select("[class=post clearfix]");
-		AMOUNT = page1ST.size();
 
 		if (null == page1ST || 0 >= page1ST.size()) return;
 		
-		// 2、二级页面解析
+		table.removeMouseListener(mouseAdapter);
+		List<Element> origin = new ArrayList<>();
+		List<Film> list = new ArrayList<>();
 		for (Element element : page1ST) {
 			// 过滤掉电视剧类型
 			String isTV = element.select("[rel=category tag]").text();
-			
-			if (!StringUtil.isBlank(isTV) && isTV.indexOf("电视剧") != -1) continue;
-
-			// 多线程解析电影数据
-			new Thread(() -> {
-				try {
-					Film film = parseDetails(element);
-					JLabel jLabel1 = new JLabel();
-					jLabel1.setText(film.getPreview());
-				    JLabel jLabel2 = new JLabel();
-				    jLabel2.setText(film.getDetails());
-				    // 增加table行数
-//				    SwingUtilities.invokeLater(()->{
-				    	DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
-				    	tableModel.addRow(new Object[]{jLabel1, jLabel2});
-//				    });
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}).start();
-			
+			if (!StringUtil.isBlank(isTV) && isTV.indexOf("电视剧") == -1) origin.add(element);
 		}
-        // 复制连接
-//      table.addMouseListener(new MouseAdapter() {
-//          public void mouseClicked(MouseEvent e){
-//            if (e.getButton() == MouseEvent.BUTTON3){ // 鼠标右键监听
-//              //在table显示
-//              jpm = new JPopupMenu();
-//              //表格 的rowAtPoint方法返回坐标所在的行号，参数为坐标类型，
-//              int i = table.rowAtPoint(e.getPoint());
-////            jpm.add(i+"");
-//              jpm.add(jLabel2.getText());
-//              LocalSwingUtil.setSysClipboardText(jLabel2.getText());
-//              jpm.show(table, e.getX(), e.getY());
-//            }
-//          }
-//        });
+		
+		
+		// 2、二级页面解析
+		for (int i = 0; i < origin.size(); i++) {
+			final int j = i;
+			// 多线程解析电影数据
+			executor.submit(() -> {
+				Film film = null;
+				try {
+					film = parseDetails(origin.get(j));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				list.add(film);
+				JLabel jLabel1 = new JLabel();
+				jLabel1.setText(film.getPreview());
+			    JLabel jLabel2 = new JLabel();
+			    jLabel2.setText(film.getDetails());
+			    
+			    // 增加table行数
+			    SwingUtilities.invokeLater(()->{
+				    DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+			    	tableModel.addRow(new Object[]{jLabel1, jLabel2});
+			    	if (j == origin.size()-1) {
+			    		// 复制电影链接
+			    		mouseAdapter = new MouseAdapter() {
+			    			public void mouseClicked(MouseEvent e){
+			    	            if (e.getButton() == MouseEvent.BUTTON3){ // 鼠标右键监听
+			    	            	int rowNum = table.rowAtPoint(e.getPoint());
+			    	            	JPopupMenu jpm = new JPopupMenu();
+			    	            	jpm.add("复制成功");
+			                		LocalSwingUtil.setSysClipboardText(list.get(rowNum).getDownload().get(0));
+			                		jpm.show(table, e.getX(), e.getY());
+			    	            }
+			    	         }
+						};
+						table.addMouseListener(mouseAdapter);
+			    		loading.setVisible(false);
+			    		loading.updateUI();
+			    	}
+			    });
+			});
+		}
 		
 	}
 
@@ -105,13 +122,13 @@ public abstract class Crawler {
 				.append(name)
 				.append("<br> 类型")
 				.append(details)
-				.append("</html>"); // 拼接为html
+				.append("<br> 右键复制链接</html>"); // 拼接为html
 		
 		// 电影下载链接
 		Elements downloadUrls = doc2ND.select("[id=zdownload]").select("a");
 		for (Element downloadUrl : downloadUrls) film.getDownload().add(downloadUrl.attr("href"));
 		
-		System.out.println(preview);
+		film.setName(name);
 		film.setPreview(preview);
 		film.setDetails(builder.toString());
 		return film;

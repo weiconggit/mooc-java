@@ -14,7 +14,6 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -25,14 +24,13 @@ import org.carryon.util.StringUtil;
 import org.carryon.web.Crawler;
 
 /**
+ * 说明：
+ * 	1、编码:UTF-8
+ * 	2、JDK:1.8以上
+ * 	3、请将lib目录下的jsoup包添加到IDE编译的配置中
+ * 	4、空闲时间有限，仅对 https://www.xl720.com/ 搜索第一页做了数据解析工作
+ * 
  * @description 程序入口
- * 	
- * 	1.setVisible(true); 一定要放到初始化最后
- * 
- * 
- * 	底层布局：边界布局，分成导航栏和功能栏
- * 	导航栏：绝对布局，固定三个导航按钮
- * 
  * @author carryon
  * @date 2019年11月26日
  * @version 1.0
@@ -66,7 +64,6 @@ public class App extends JFrame {
 	ImageIcon imageIconPlGray = LocalSwingUtil.scalingImg("icon/player_gray.png");
 	ImageIcon imageIconCoGray = LocalSwingUtil.scalingImg("icon/collect_gray.png");
 
-	JPopupMenu jpm = new JPopupMenu();;
 	JTable table = LocalSwingUtil.getTableStyle();
 	JScrollPane jScrollPane = new JScrollPane(table);
 	
@@ -76,7 +73,7 @@ public class App extends JFrame {
 	 */
 	public void init() throws IOException {
 		setSize(800, 600);
-		setTitle("Mooc Week11 电影资源嗅探管理器");
+		setTitle("CarryOn Mooc Week11 电影资源嗅探器");
 		setLayout(new BorderLayout());
 		// 窗口整体居中
 		setLocationRelativeTo(null); 
@@ -112,7 +109,6 @@ public class App extends JFrame {
 				jLabelSearch.setIcon(imageIconSe);
 				jLabelPlayer.setIcon(imageIconPlGray);
 				jLabelCollect.setIcon(imageIconCoGray);
-//				jPanelSearch.setVisible(true);
 			}
 		});
 		
@@ -163,13 +159,11 @@ public class App extends JFrame {
 		    try {
 				DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
 				tableModel.setRowCount(0);
-				Crawler.getFromXl720Com(filmName, table);
+				Crawler.getFromXl720Com(filmName, table, loading);
 			} catch (Exception e1) {
 				LocalSwingUtil.diglog("加载出错，请重试");
 				e1.printStackTrace();
 			}
-//		    loading.setVisible(false);
-//		    loading.updateUI();
 		});
 		loading.setVisible(false);
 		
@@ -188,6 +182,11 @@ public class App extends JFrame {
 	public void initSearchBottomComponent() {   
 	    jScrollPane.setBorder(null);
 		jScrollPane.setPreferredSize(new Dimension(600, 510));
+		try {
+			Crawler.getFromXl720Com("周星驰", table, loading);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		jPanelSearchBottom.setBackground(Color.white);
 		jPanelSearchBottom.add(jScrollPane);
